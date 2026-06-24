@@ -122,8 +122,6 @@ chmod +x install.sh
 
 ./install.sh
 
-
-
 ```
 
 
@@ -141,8 +139,6 @@ Navigate into the `backend/` directory and create a hidden `.env` file. The syst
 cd backend
 
 nano .env
-
-
 
 ```
 
@@ -176,8 +172,6 @@ TWILIO_WHATSAPP_SENDER=whatsapp:+14155238886
 
 JWT_SECRET=super-secret-spillsense-key-change-me
 
-
-
 ```
 
 
@@ -210,8 +204,6 @@ source .venv/bin/activate
 
 uvicorn app:app --reload
 
-
-
 ```
 
 
@@ -233,8 +225,6 @@ This serves the graphical user interface.
 cd frontend
 
 npm run dev
-
-
 
 ```
 
@@ -259,8 +249,6 @@ cd backend
 source .venv/bin/activate
 
 python main.py
-
-
 
 ```
 

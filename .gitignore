@@ -61,3 +61,4 @@ data/
 *.nc
 *.pt
 *.pth
+*.db

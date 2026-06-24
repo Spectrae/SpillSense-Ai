@@ -1,15 +1,19 @@
 import time
 import os
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from database import SessionLocal
+# --- EDITED: Added engine import ---
+from database import SessionLocal, engine
 import models
 from utils.cdse_api import get_access_token, build_search_query, execute_search
 from utils.downloader import download_image_chunked, extract_safe_zip
 from utils.s1_parser import parse_sentinel1_filename, validate_for_ml_pipeline
 from utils.notifications import send_whatsapp_alert
+
+# --- EDITED: Initialize the database tables on startup ---
+models.Base.metadata.create_all(bind=engine)
 
 # Global set to remember processed images to prevent infinite loops (in production, move this to the DB)
 PROCESSED_IDS = set()
@@ -21,12 +25,12 @@ def process_single_roi(db_session, roi):
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     token = get_access_token()
     
-    # Use the WKT string directly from the database
-    query_url = build_search_query(roi.wkt_polygon, hours_back=24)
+    # INCREASED SEARCH WINDOW: Now looking back 7 days (168 hours) instead of just 24 hours
+    query_url = build_search_query(roi.wkt_polygon, hours_back=168)
     found_images = execute_search(token, query_url)
     
     if not found_images:
-        print(f"   ⏸️ No new images for {roi.name}.")
+        print(f"   ⏸️ No new images for {roi.name} in the last 7 days.")
         return
         
     target_scene = found_images[0]
@@ -62,7 +66,8 @@ def process_single_roi(db_session, roi):
 
 def oil_spill_pipeline_job():
     """The main scheduled job that loops through all active database ROIs."""
-    current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+    # Fixed DeprecationWarning by using timezone-aware UTC
+    current_time = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
     print(f"\n[{current_time}] ⚙️ SYSTEM WAKE! Fetching active regions from database...")
     
     # Open a clean database session for this polling cycle
@@ -83,7 +88,7 @@ def oil_spill_pipeline_job():
     finally:
         db.close() # Always close the session to prevent memory leaks
 
-    print(f"[{datetime.utcnow().strftime('%H:%M:%S UTC')}] ✅ Cycle complete. Going back to sleep.\n")
+    print(f"[{datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}] ✅ Cycle complete. Going back to sleep.\n")
 
 def start_system():
     print("🚀 Initializing DB-Aware Sentinel-1 Polling System...")
